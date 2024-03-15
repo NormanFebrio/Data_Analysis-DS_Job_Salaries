@@ -12,4 +12,4 @@ This repository contains my advanced SQL project, where I explored various compl
 ## Acknwoledgements
 
 - Special thanks to Ruchi Bhatia for providing the dataset used in this project.
-- Credits to Kak Rizki Basuki and Kak Adinata, as well as MySkill for valuable insights and guidance on advanced SQL techniques.
+- Credits to Kak Rizki Basuki and Kak Kevin Adinata, as well as MySkill for valuable insights and guidance on advanced SQL techniques.
