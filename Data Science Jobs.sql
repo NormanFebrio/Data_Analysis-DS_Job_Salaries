@@ -19,7 +19,12 @@ FROM ds_salaries
 SELECT SQRT(SUM((salary_in_usd - avg_sal_in_usd)^2)/(COUNT(*)-1)) std_value
 FROM ds_salaries CROSS JOIN avg_salary
 )
-SELECT min_sal_in_usd, max_sal_in_usd, avg_sal_in_usd, range_sal_in_usd, std_value
+SELECT 
+	min_sal_in_usd, 
+	max_sal_in_usd, 
+	avg_sal_in_usd, 
+	range_sal_in_usd, 
+	std_value
 FROM min_salary
 CROSS JOIN max_salary
 CROSS JOIN avg_salary
@@ -43,7 +48,7 @@ SELECT COUNT(*) num_of_ai_jobs FROM ds_salaries WHERE job_title LIKE "%AI%"
 SELECT COUNT(*) total_jobs FROM ds_salaries
 )
 SELECT *,
-(total_jobs-(num_of_ds_jobs+num_of_da_jobs+num_of_de_jobs+num_of_ml_jobs+num_of_ai_jobs)
+(total_jobs-(num_of_ds_jobs + num_of_da_jobs + num_of_de_jobs + num_of_ml_jobs + num_of_ai_jobs)
     ) AS num_of_other_jobs
 FROM total_jobs 
 CROSS JOIN ds_jobs ds
@@ -59,14 +64,17 @@ WITH label AS (
 SELECT *,
 CASE
 	WHEN job_title LIKE "%data scien%" THEN "DS"
-    WHEN job_title LIKE "%data ana%" THEN "DA"
-    WHEN job_title LIKE "%data engine%" THEN "DE"
-    WHEN job_title LIKE "%machine learning%" OR job_title LIKE "%ML%" THEN "ML"
-    WHEN job_title LIKE "%AI%" THEN "AI"
+	WHEN job_title LIKE "%data ana%" THEN "DA"
+	WHEN job_title LIKE "%data engine%" THEN "DE"
+	WHEN job_title LIKE "%machine learning%" OR job_title LIKE "%ML%" THEN "ML"
+	WHEN job_title LIKE "%AI%" THEN "AI"
 	ELSE "OTHER"
 END AS job_label
 FROM ds_salaries)
-SELECT job_label, employment_type, AVG(salary_in_usd) avg_sal_in_usd
+SELECT 
+	job_label, 
+	employment_type, 
+	AVG(salary_in_usd) avg_sal_in_usd
 FROM label
 WHERE experience_level IN ("EN","MI")
 GROUP BY 1, 2
@@ -74,7 +82,12 @@ ORDER BY 1, 2;
 
 -- 4. Pekerjaan apa saja yang memiliki gaji tertinggi di tahun 2022 dengan experience level junior
 -- (EN)?
-SELECT job_title, employment_type, company_location, company_size, salary_in_usd
+SELECT 
+	job_title, 
+	employment_type, 
+	company_location, 
+	company_size, 
+	salary_in_usd
 FROM ds_salaries
 WHERE work_year = 2022 AND experience_level IN ("EN")
 ORDER BY salary_in_usd DESC
@@ -84,28 +97,32 @@ LIMIT 10;
 -- label pekerjaan tiap tahunnya?
 SELECT *,
 	(avg_sal_in_usd - LAG(avg_sal_in_usd)
-						OVER(PARTITION BY job_label ORDER BY work_year)) difference
+	OVER(PARTITION BY job_label ORDER BY work_year)) difference
 FROM
-(SELECT work_year, job_label, AVG(salary_in_usd) avg_sal_in_usd
-FROM (
-	SELECT *,
-		CASE
-			WHEN job_title LIKE "%data scien%" THEN "DS"
-			WHEN job_title LIKE "%data ana%" THEN "DA"
-			WHEN job_title LIKE "%data engine%" THEN "DE"
-			WHEN job_title LIKE "%machine learning%" OR job_title LIKE "%ML%" THEN "ML"
-			WHEN job_title LIKE "%AI%" THEN "AI"
-			ELSE "OTHER"
-		END AS job_label
-	FROM ds_salaries
-) t1
-GROUP BY 1,2) t2
+	(SELECT 
+		work_year, 
+		job_label, 
+		AVG(salary_in_usd) avg_sal_in_usd
+	FROM (
+		SELECT *,
+			CASE
+				WHEN job_title LIKE "%data scien%" THEN "DS"
+				WHEN job_title LIKE "%data ana%" THEN "DA"
+				WHEN job_title LIKE "%data engine%" THEN "DE"
+				WHEN job_title LIKE "%machine learning%" OR job_title LIKE "%ML%" THEN "ML"
+				WHEN job_title LIKE "%AI%" THEN "AI"
+				ELSE "OTHER"
+			END AS job_label
+		FROM ds_salaries
+	) t1
+	GROUP BY 1,2) t2
 ORDER BY 2,1;
 
 -- 6. Pekerjaan data analyst yang mana yang memiliki gaji tertinggi?
 SELECT DISTINCT job_title
 FROM ds_salaries
-WHERE job_title LIKE "%Data Ana%";
+WHERE job_title LIKE "%Data Ana%"
+ORDER BY salary_in_usd DESC;
 
 -- 7. Pekerjaan apa saja yang memiliki gaji terbesar di bidang data analyst?
 -- (level junior (EN))
@@ -163,30 +180,39 @@ ORDER BY 1 DESC;
 -- yang sama dengan lokasi perusahaan lebih mungkin untuk kerja dari kantor?
 SELECT
 	"Total Employee" descr, 
-    CAST(SUM(CASE WHEN remote_ratio = 100 THEN 1 END) AS CHAR) num_of_fully_remote_employee,
-    CAST(SUM(CASE WHEN remote_ratio = 50 THEN 1 END) AS CHAR) num_of_partially_remote_employee,
-    CAST(SUM(CASE WHEN remote_ratio = 0 THEN 1 END) AS CHAR) num_of_no_remote_employee
+	CAST(SUM(CASE WHEN remote_ratio = 100 THEN 1 END) AS CHAR) num_of_fully_remote_employee,
+	CAST(SUM(CASE WHEN remote_ratio = 50 THEN 1 END) AS CHAR) num_of_partially_remote_employee,
+	CAST(SUM(CASE WHEN remote_ratio = 0 THEN 1 END) AS CHAR) num_of_no_remote_employee
 FROM ds_salaries
 WHERE job_title LIKE "%data ana%"
 GROUP BY 1
 UNION ALL
 SELECT 
 	"Pctg of employee WFO" descr,
-    CAST(SUM(
-			CASE WHEN (remote_ratio = 100) AND (employee_residence = company_location) THEN 1
-            END)*100/(SUM(CASE
-							WHEN remote_ratio = 100 THEN 1
-                            END)) AS CHAR) num_of_fully_remote_employee,
-	CAST(SUM(
-			CASE WHEN (remote_ratio = 50) AND (employee_residence = company_location) THEN 1
-            END)*100/(SUM(CASE
-						WHEN remote_ratio = 50 THEN 1
-                        END)) AS CHAR) num_of_partially_remote_employee,
-	CAST(SUM(
-			CASE WHEN (remote_ratio = 0) AND (employee_residence = company_location) THEN 1
-            END)*100/(SUM(CASE
-						WHEN remote_ratio = 0 THEN 1
-						END)) AS CHAR) num_of_no_remote_employee
+	-- Menghitung persentase karyawan yang rasio remote-nya 100
+	-- yang tinggal di lokasi yang sama dengan perusahaan
+    	CAST(SUM(CASE 
+		WHEN (remote_ratio = 100) AND (employee_residence = company_location) THEN 1
+            	END)*100/(SUM(CASE
+				WHEN remote_ratio = 100 THEN 1
+                            	END) 
+	) AS CHAR) num_of_fully_remote_employee,
+	-- Menghitung persentase karyawan yang rasio remote-nya 50
+	-- yang tinggal di lokasi yang sama dengan perusahaan
+	CAST(SUM(CASE 
+		WHEN (remote_ratio = 50) AND (employee_residence = company_location) THEN 1
+            	END)*100/(SUM(CASE
+				WHEN remote_ratio = 50 THEN 1
+	                        END)
+	) AS CHAR) num_of_partially_remote_employee,
+	-- Menghitung persentase karyawan yang rasio remote-nya 0
+	-- yang tinggal di lokasi yang sama dengan perusahaan
+	CAST(SUM(CASE 
+		WHEN (remote_ratio = 0) AND (employee_residence = company_location) THEN 1
+		END)*100/(SUM(CASE
+				WHEN remote_ratio = 0 THEN 1
+				END)
+	) AS CHAR) num_of_no_remote_employee
 FROM ds_salaries
 WHERE job_title LIKE "%data ana%"
 GROUP BY 1;
